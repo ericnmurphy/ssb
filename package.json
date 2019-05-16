@@ -1,0 +1,10 @@
+{
+  "name": "ssb",
+  "version": "1.0.0",
+  "description": "A simple static blog generator",
+  "scripts": {
+    "build": "node build"
+  },
+  "author": "Eric Murphy",
+  "license": "ISC"
+}
