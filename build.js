@@ -9,6 +9,14 @@ fs.readdir('blog', function(err, files) {
   // get template html
   var template = fs.readFileSync('template.html', {encoding: 'utf8'});
 
+  // create home page
+  var path = 'index.html';
+  var post = fs.readFileSync(path, {encoding: 'utf8'});
+  var html = template.replace('<!-- CONTENT -->', post);
+
+  // write finished home page to build folder
+  fs.writeFileSync('build/' + path, html, {encoding: 'utf8'});
+
   // create blog posts
   for (i = 0; i < files.length; i++) {
     // get html from files
