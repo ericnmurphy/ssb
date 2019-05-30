@@ -12,7 +12,7 @@ function createBlogRoll(posts) {
     var postDate = postBody.match(/<span class="date">(.*?)<\/span>/)[1];
     var postMeta = {
       title: postTitle,
-      path: postPath,
+      path: postPath.split('.')[0],
       date: postDate,
     };
     blogroll.push(postMeta);
@@ -58,7 +58,10 @@ function createBlogPages(posts, template) {
     var html = template.replace('<!-- CONTENT -->', post);
 
     // write finished file to build folder
-    fs.writeFileSync('build/' + path, html, {encoding: 'utf8'});
+    fs.mkdirSync('build/' + path.split('.')[0], {recursive: true});
+    fs.writeFileSync('build/' + path.split('.')[0] + '/index.html', html, {
+      encoding: 'utf8',
+    });
   }
 }
 
