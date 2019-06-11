@@ -1,80 +1,66 @@
-var fs = require('fs');
+const path = require('path');
+const fs = require('fs');
 
-function createBlogRoll(posts) {
-  //create list of posts for home page
-  var blogroll = [];
+// if build directory already exists, delete it
+const deleteFolder = folder => {
+  // get every file in folder
+  fs.readdirSync(folder).forEach(file => {
+    // get current folder
+    const currentFile = `${folder}/${file}`;
 
-  // get metadata for each blog post
-  for (i = 0; i < posts.length; i++) {
-    var postPath = 'blog/' + posts[i];
-    var postBody = fs.readFileSync(postPath, {encoding: 'utf8'});
-    var postTitle = postBody.match(/<h1>(.*?)<\/h1>/)[1];
-    var postDate = postBody.match(/<span class="date">(.*?)<\/span>/)[1];
-    var postMeta = {
-      title: postTitle,
-      path: postPath.split('.')[0],
-      date: postDate,
-    };
-    blogroll.push(postMeta);
+    // check if we need to go deeper
+    if (fs.statSync(currentFile).isDirectory()) {
+      deleteFolder(currentFile);
+    } else {
+      // else, delete file
+      fs.unlinkSync(currentFile);
+    }
+  });
+
+  // finally, delete current folder
+  fs.rmdirSync(folder);
+};
+
+const copyFolder = (source, destination) => {
+  // check if current file is a folder
+  if (fs.statSync(source).isDirectory()) {
+    // create folder in build directory
+    fs.mkdirSync(destination);
+
+    // copy every file in directory
+    fs.readdirSync(source).forEach(file => {
+      copyFolder(path.join(source, file), path.join(destination, file));
+    });
+  } else {
+    fs.linkSync(source, destination);
+  }
+};
+
+const build = () => {
+  const srcDirectory = './src';
+  const buildDirectory = './build';
+
+  // delete build folder if exists already
+  if (fs.existsSync(buildDirectory)) {
+    deleteFolder(buildDirectory);
   }
 
-  // sort posts and make blogroll for home page
-  var indexBlog = '';
-  blogroll
-    .sort(function(post, previousPost) {
-      return new Date(previousPost.date) - new Date(post.date);
-    })
-    .map(function(post) {
-      indexBlog +=
-        '<article><h3><a href="' +
-        post.path +
-        '">' +
-        post.title +
-        '</a></h3><span class="date">' +
-        post.date +
-        '</date></article>';
-    });
-  return indexBlog;
-}
+  copyFolder(srcDirectory, buildDirectory);
+};
 
-function createIndexPage(posts, template) {
-  // create index page
-  var indexPath = 'index.html';
-  var indexBody = fs
-    .readFileSync(indexPath, {encoding: 'utf8'})
-    .replace('<!-- BLOG -->', createBlogRoll(posts));
-  var indexHtml = template.replace('<!-- CONTENT -->', indexBody);
+function getPages(directory) {
+  // get all files in directory
+  var files = fs.readdirSync(directory);
 
-  // write finished home page to build folder
-  fs.writeFileSync('build/' + indexPath, indexHtml, {encoding: 'utf8'});
-}
-
-function createBlogPages(posts, template) {
-  // create blog posts
-  for (i = 0; i < posts.length; i++) {
-    // get html from posts
-    var path = 'blog/' + posts[i];
-    var post = fs.readFileSync(path, {encoding: 'utf8'});
-    var html = template.replace('<!-- CONTENT -->', post);
-
-    // write finished file to build folder
-    fs.mkdirSync('build/' + path.split('.')[0], {recursive: true});
-    fs.writeFileSync('build/' + path.split('.')[0] + '/index.html', html, {
-      encoding: 'utf8',
-    });
+  for (var i = 1; i < files.length; i++) {
+    var filename = path.join(directory, files[i]);
+    var stat = fs.lstatSync(filename);
+    if (stat.isDirectory()) {
+      getPages(filename); //recurse
+    } else if (filename.indexOf('.html')) {
+      //      pages.push(filename);
+    }
   }
 }
 
-// get all blog posts inside 'blog' directory
-fs.readdir('blog', function(err, files) {
-  if (err) throw err;
-
-  // create directory
-  fs.mkdirSync('build/blog', {recursive: true});
-
-  // get template html
-  var template = fs.readFileSync('template.html', {encoding: 'utf8'});
-
-  createIndexPage(files, template);
-  createBlogPages(files, template);
-});
+build();
