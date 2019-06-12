@@ -62,8 +62,17 @@ const createBlogRoll = () => {
     blogroll.push(postMeta);
   });
 
-  return blogroll;
-  console.log(blogroll);
+  let blogrollHtml = '';
+  // sort by reverse date
+  blogroll
+    .sort((post, previousPost) => {
+      return new Date(previousPost.date) - new Date(post.date);
+    })
+    .map(post => {
+      blogrollHtml += `<article><h3><a href="${post.path}">${post.title}</a></h3><span class="date">${post.date}</date></article>`;
+    });
+
+  return blogrollHtml;
 };
 
 // get template html
@@ -71,7 +80,12 @@ const template = fs.readFileSync('template.html', {encoding: 'utf8'});
 
 const buildPage = (source, destination) => {
   const pageHtml = fs.readFileSync(source, {encoding: 'utf8'});
-  const newPageHtml = template.replace('<!-- CONTENT -->', pageHtml);
+
+  // replace tags with content and blogroll
+  const newPageHtml = template.replace(
+    '<!-- CONTENT -->',
+    pageHtml.replace('<!-- BLOG -->', createBlogRoll()),
+  );
   fs.writeFileSync(destination, newPageHtml, {encoding: 'utf8'});
 };
 
@@ -84,5 +98,4 @@ const build = () => {
   buildFolder(srcDirectory, buildDirectory);
 };
 
-// build();
-createBlogRoll();
+build();
